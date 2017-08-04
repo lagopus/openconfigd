@@ -1,0 +1,403 @@
+module coreswitch {
+  yang-version "1";
+
+  namespace "http://coreswitch.io/";
+  prefix "coreswitch";
+
+  import ietf-inet-types {
+    prefix inet;
+  }
+
+  import dhcp {
+    prefix dhcp;
+  }
+
+  import vrrp {
+    prefix vrrp;
+  }
+
+  container vrf {
+    list name {
+      key "name";
+      leaf name {
+        type string;
+      }
+      leaf rd {
+        type string;
+      }
+      container dhcp {
+        uses "dhcp:dhcp";
+      }
+      container static {
+        list route {
+          key "prefix";
+          leaf prefix {
+            type inet:ipv4-prefix;
+          }
+          list nexthop {
+            key "address";
+            leaf "address" {
+              type inet:ipv4-address;
+              description "Nexthop of the route";
+              mandatory true;
+            }
+          }
+          list interface {
+            key "ifname";
+            leaf "ifname" {
+              type string;
+            }
+          }
+          leaf distance {
+            type uint8;
+            description "Distance of the route.";
+          }
+        }
+      }
+      list vrrp {
+        key vrid;
+
+        leaf vrid {
+          type uint8 {
+            range 1..255;
+          }
+          description "Virtual router ID.";
+        }
+
+        leaf interface {
+          type string;
+          description "Interface name";
+        }
+
+        leaf state {
+          type enumeration {
+            enum master;
+            enum backup;
+          }
+        }
+
+        leaf virtual-address {
+          type inet:ipv4-address;
+          description "Virtual IPv4 address";
+        }
+
+        leaf priority {
+          type uint8 {
+            range 1..255;
+          }
+          default 100;
+          description
+            "Configures the Virtual Router Redundancy Protocol (VRRP)
+         election priority for the backup virtual router.";
+        }
+
+        leaf advertisement-interval {
+          type uint8 {
+            range 1..255;
+          }
+          default 1;
+          description
+            "Configures the interval that Virtual Router
+         Redundancy Protocol Version 2 (VRRPv2) advertisements
+         are sent from the specified interface.";
+        }
+
+        list unicast-peer {
+          key address;
+          leaf "address" {
+            type inet:ipv4-address;
+            description "Other VRRP router's IP address";
+          }
+        }
+
+        leaf authentication-key {
+          type string;
+          description
+            "VRRP authentication key.  When this is specified, VRRP authentication is enabled.";
+        }
+
+        leaf preempt {
+          type empty;
+          description
+            "Enable VRRP preemption.";
+        }
+      }
+
+    }
+  }
+
+  container vlans {
+    list vlan {
+      key "id";
+      leaf id {
+        type uint16 {
+          range 1..4096;
+        }
+      }
+    }
+  }
+
+  container dhcp {
+    uses "dhcp:dhcp";
+  }
+
+  container vrrp {
+    uses "vrrp:vrrp";
+  }
+
+  container interfaces {
+    list interface {
+      key "name";
+      leaf name {
+        type string;
+      }
+      leaf vrf {
+        type string;
+      }
+      container ipv4 {
+        list address {
+          key "ip";
+          leaf ip {
+            type inet:ipv4-prefix;
+          }
+        }
+      }
+      container ipv6 {
+        list address {
+          key "ip";
+          leaf ip {
+            type inet:ipv6-prefix;
+          }
+        }
+      }
+      leaf shutdown {
+        type empty;
+      }
+      leaf dhcp-relay-group {
+        type string;
+      }
+      leaf descriptionx {
+        type string;
+      }
+      leaf mtu {
+        type uint16 {
+          range "68..max";
+        }
+      }
+      leaf vlan {
+        type uint16 {
+          range 1..4096;
+        }
+      }
+      list vlans {
+        key "vlan-id";
+        leaf vlan-id {
+          type uint16 {
+            range 1..4096;
+          }
+        }
+      }
+      leaf mode {
+        type enumeration {
+          enum 1x100G;
+          enum 1x40G;
+          enum 2x40G;
+          enum 2x50G;
+          enum 4x10G;
+          enum 4x25G;
+          enum 4x1G_SGMII;
+        }        
+      }
+      leaf fec {
+        type enumeration {
+          enum RS;
+          enum FC;
+        }
+      }
+    }
+  }
+  
+  container routing-options {
+    leaf router-id {
+      type inet:ipv4-address;
+    }
+    container static {
+      list route {
+        key "prefix";
+        leaf prefix {
+          type inet:ipv4-prefix;
+        }
+        list nexthop {
+          key "address";
+          leaf "address" {
+            type inet:ipv4-address;
+            description "Nexthop of the route";
+            mandatory true;
+          }
+        }
+        list interface {
+          key "ifname";
+          leaf "ifname" {
+            type string;
+          }
+        }
+        leaf distance {
+          type uint8;
+          description "Distance of the route.";
+        }
+      }
+
+      list route-ipv6 {
+        key "prefix";
+        leaf prefix {
+          type inet:ipv6-prefix;
+        }
+        list nexthop {
+          key "address";
+          leaf "address" {
+            type inet:ipv6-address;
+            description "Nexthop of the route";
+            mandatory true;
+          }
+        }
+        list interface {
+          key "ifname";
+          leaf "ifname" {
+            type string;
+          }
+        }
+        leaf distance {
+          type uint8;
+          description "Distance of the route.";
+        }
+      }
+    }
+  }
+
+  container protocols {
+    container bgp {
+      container global {
+        leaf as {
+          type uint32;
+        }
+        leaf router-id {
+          type inet:ipv4-address;
+        }
+      }
+    }
+  }
+
+  container system {
+    description
+      "System group configuration.";
+
+    leaf hostname {
+      type inet:domain-name;
+      description
+        "The name of the host.  This name can be a single domain
+        label or the fully qualified domain name of the host.";
+    }
+    container ntp {
+      description
+        "Configuration of the NTP client.";
+      leaf enabled {
+        type boolean;
+        default true;
+        description
+          "Indicates that the system should attempt to
+           synchronize the system clock with an NTP server
+           from the 'ntp/server' list.";
+      }
+      list server {
+        key name;
+        description
+          "List of NTP servers to use for system clock
+           synchronization.  If '/system/ntp/enabled'
+           is 'true', then the system will attempt to
+           contact and utilize the specified NTP servers.";
+        leaf name {
+          type string;
+          description
+            "An arbitrary name for the NTP server.";
+        }
+        choice transport {
+          mandatory true;
+          description
+            "The transport-protocol-specific parameters for this
+             server.";
+          case udp {
+            container udp {
+              description
+                "Contains UDP-specific configuration parameters
+                 for NTP.";
+              leaf address {
+                type inet:host;
+                mandatory true;
+                description
+                  "The address of the NTP server.";
+              }
+              leaf port {
+                type inet:port-number;
+                default 123;
+                description
+                  "The port number of the NTP server.";
+              }
+            }
+          }
+        }
+        leaf association-type {
+          type enumeration {
+            enum server {
+              description
+              "Use client association mode.  This device
+                 will not provide synchronization to the
+                 configured NTP server.";
+            }
+            enum peer {
+              description
+              "Use symmetric active association mode.
+                 This device may provide synchronization
+                 to the configured NTP server.";
+            }
+            enum pool {
+              description
+              "Use client association mode with one or
+                 more of the NTP servers found by DNS
+                 resolution of the domain name given by
+                 the 'address' leaf.  This device will not
+                 provide synchronization to the servers.";
+            }
+          }
+          default server;
+          description
+            "The desired association type for this NTP server.";
+        }
+        leaf iburst {
+          type boolean;
+          default false;
+          description
+            "Indicates whether this server should enable burst
+             synchronization or not.";
+        }
+        leaf prefer {
+          type boolean;
+          default false;
+          description
+            "Indicates whether this server should be preferred
+             or not.";
+        }
+      }
+    }
+    container etcd {
+      list endpoints {
+        key "url";
+        leaf url {
+          type string;
+        }
+      }
+      leaf path {
+        type string;
+      }
+    }
+  }
+}
